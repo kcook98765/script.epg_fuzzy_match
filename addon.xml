@@ -26,11 +26,11 @@ V0.0.1 Initial Version</news>
 	<extension point="kodi.context.item">
 		<menu id="kodi.core.main">
 			<item library="context.py" args="Single">
-				<label>Library Match $INFO[Window(10000).Property(Fuzzy.context)}</label>
+				<label>Library Match</label>
 				<visible>String.IsEqual(Window(10000).Property(Fuzzy.context),Single)</visible>
 			</item>
 			<item library="context.py" args="Multi">
-				<label>Library Matches $INFO[Window(10000).Property(Fuzzy.context)}</label>
+				<label>Library Matches</label>
 				<visible>String.IsEqual(Window(10000).Property(Fuzzy.context),Multi)</visible>
 			</item>
 		</menu>
