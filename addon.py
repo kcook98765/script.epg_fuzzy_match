@@ -113,6 +113,11 @@ def monitorgui(current_item):
 
 
 def notify(message):
+   addon = xbmcaddon.Addon("script.epg_fuzzy_match")
+   notification_enabled = addon.getSetting('notification_enabled')
+   if notification_enabled == 'false':
+      return ''
+
    dialog.notification('EPG Match', message, xbmcgui.NOTIFICATION_INFO, 100)
 
 def ismovie(current_item):
