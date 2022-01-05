@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.epg_fuzzy_match" name="EPG Fuzzy Match" version="0.0.1" provider-name="kcook98765">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+		<import addon="script.module.simplecache" version="2.0.2" />
+	</requires>
+	<extension point="xbmc.service" library="addon.py">
+		<provides>executable</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Fuzzy Video Match</summary>
+		<description lang="en">Perform EPG fuzzy match on local library</description>
+		<license>GNU General Public License, v3</license>
+		<language></language>
+		<source>https://github.com/kcook98765/script.epg_fuzzy_match</source>
+		<email></email>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<news>Initial Version</news>
+	</extension>
+	<extension point="kodi.context.item">
+		<menu id="kodi.core.main">
+			<item library="context.py" args="Single">
+				<label>Library Match $INFO[Window(10000).Property(Fuzzy.context)}</label>
+				<visible>String.IsEqual(Window(10000).Property(Fuzzy.context),Single)</visible>
+			</item>
+			<item library="context.py" args="Multi">
+				<label>Library Matches $INFO[Window(10000).Property(Fuzzy.context)}</label>
+				<visible>String.IsEqual(Window(10000).Property(Fuzzy.context),Multi)</visible>
+			</item>
+		</menu>
+	</extension>
+</addon>
