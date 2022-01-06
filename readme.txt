@@ -1,3 +1,7 @@
+# update:
+Add settings for this service, to enable/disable notifications (Context "Math" entry will still be inserted for match(es), just no notification popups.
+
+
 # script.epg_fuzzy_match
  Kodi EPG Fuzzy match to local library
  
@@ -22,7 +26,5 @@
  apply to TV Series (though this will require some work as local vs pvr may use different entities to set season and episode numbers)
  
  Add optional skin Properties (so skinners could display related match data directly in skin)
- 
- Add settings for this service, to enable/disable notifications (when skin Properties have been setup and your skin supports it).
  
  Code cleanup and optimizations (though already using simplecache to reduce JSON calls for entry matching).
