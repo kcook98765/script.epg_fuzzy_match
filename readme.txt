@@ -1,5 +1,5 @@
 # update:
-Add settings for this service, to enable/disable notifications (Context "Math" entry will still be inserted for match(es), just no notification popups.
+Add settings for this service, to enable/disable notifications (Context "Match" entry will still be inserted for match(es), just no notification popups.
 
 
 # script.epg_fuzzy_match
