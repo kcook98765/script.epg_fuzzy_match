@@ -6,249 +6,442 @@ import json
 import datetime
 
 dialog = xbmcgui.Dialog()
-
 win = xbmcgui.Window(10000)
-
-
-# initiate the cache
 _cache = simplecache.SimpleCache()
 
-def monitorgui(current_item):
+def disp_notification(type):
+    addon = xbmcaddon.Addon("script.epg_fuzzy_match")
+    notification_enabled = addon.getSetting('notification_enabled')
+    no_match_notification_enabled = addon.getSetting('no_match_notification_enabled')
+    if notification_enabled == 'false':
+       return ''
+
+    if type == 'Multi':
+       message = 'Found Multiple Matches'
+    elif type == 'Single':
+        message = 'Found Single Match'
+    else:
+        if no_match_notification_enabled == 'false':
+           return ''
+        message = 'No Matches Found'
+
+    dialog.notification('EPG Match', message, xbmcgui.NOTIFICATION_INFO, 100)
+
+def debug_log(message):
+    debug = 'EPG Fuzzy Match: ' + message
+    xbmc.log(debug, level=xbmc.LOGINFO)
+
+def monitorgui():
+
+    # gather all the pieces to uniquely identify 
+    # the current item highlighted in guide
     
-   x = re.split("~", current_item, 1)
-   search_movie = x[0]
-   search_year = x[1]
+    d = {
+        "title" : xbmc.getInfoLabel("ListItem.EpgEventTitle"),
+        "imdbnumber" : xbmc.getInfoLabel("ListItem.IMDBNumber"),
+        "year" : xbmc.getInfoLabel("ListItem.Year"),
+        "season" : xbmc.getInfoLabel("ListItem.Season"),
+        "episode" : xbmc.getInfoLabel("ListItem.Episode"),
+        "rel_date" : xbmc.getInfoLabel("ListItem.ReleaseDate"),
+        "org_date" : xbmc.getInfoLabel("ListItem.OriginalDate"),
+        "prem_date" : xbmc.getInfoLabel("ListItem.Premiered"),
+        "ep_name" : xbmc.getInfoLabel("ListItem.EpisodeName"),
+        "status" : xbmc.getInfoLabel("ListItem.Status")
+    }
+    
+    
+    if not d['season']:
+        d['season'] = -1
 
-   if xbmc.getCondVisibility('Container(%s).Scrolling') % xbmcgui.getCurrentWindowId() or \
-      win.getProperty('Fuzzy.status') == 'busy' or \
-      not xbmc.getCondVisibility('Window.IsActive(%s)' % 'MyPVRGuide.xml'):
-      win.setProperty("Fuzzy.context", "")
-      win.setProperty("Fuzzy.xsp", "")
-      xbmc.sleep(2000)
-      return current_item
-      
-   this_item = ismovie(current_item)
-
-#   debug = 'Fuzzy Match This loop: ' + this_item
-
-#   xbmc.log(debug, level=xbmc.LOGINFO)
-
-   
-   if this_item != current_item:
-
-      # check if cache used
-      cache_id = 'EPG_Match.' + this_item
-      mycache = _cache.get(cache_id)
-      if mycache and this_item == '~':
-         debug = 'EPG Fuzzy Match - cache_hit: %s' % (this_item)
-         xbmc.log(debug, level=xbmc.LOGINFO)
-         win.setProperty("Fuzzy.context", mycache[0])
-         win.setProperty("Fuzzy.label", mycache[1])
-         win.setProperty("Fuzzy.xsp", mycache[2])
-         win.setProperty("Fuzzy.status", "")
-         _cache.set( cache_id, mycache, expiration=datetime.timedelta(days=1))
-         
-         if mycache[0] == 'Muli':
-             notify('Found multiple matches')
-         elif mycache[0] == 'Single':
-            notify('Found single match')
-         return this_item
-      
-      search_result = lib_search(this_item)
-      current_item = search_result[0]
-      matches = search_result[1]
-      
-      search_movie = search_result[3]
-      search_year = search_result[4]
-      
-      debug = 'EPG Fuzzy Match - search:  ' +  current_item +  ' : ' + str(matches) + ' : ' + search_movie + ' : ' + str(search_year)
-      xbmc.log(debug, level=xbmc.LOGINFO)
-      
-      xsp = '{"rules":{"or":['
-      
-      # ~ joined list of files
-      file_string = search_result[2]
-      
-      files = re.split("~", file_string)
-
-      for i in range(0, len(files)):
-         if i > 0:
-            xsp = xsp + ","
-
-         xsp = xsp + '{"field":"filename","operator":"is","value":"%s"}' % (files[i])
-         
-         file_path = files[i]
-
-      xsp = xsp + ']},"type":"movies"}'
-
-      xsp = urllib.parse.quote_plus(xsp)
-
-      if matches > 1:
-         # indicate multi matches, set context to send to list of matches, trigger notification of such
-         notify('Found multiple matches')
-         win.setProperty("Fuzzy.context", "Multi")
-         win.setProperty("Fuzzy.xsp", xsp)
-         
-      elif matches == 1:
-         # indicate 1 match, set context to go to dialogvideoinfo window, trigger notification of such
-         notify('Found a single match')
-         win.setProperty("Fuzzy.context", "Single")
-         win.setProperty("Fuzzy.label",search_movie)
-         win.setProperty("Fuzzy.xsp", file_path)
-         
-      else:
-         # no matches, no context menu addition, trigger notification of no match(es) found
-#         notify('No match found')
-         win.setProperty("Fuzzy.context", "")
-         win.setProperty("Fuzzy.xsp", "")
-
-      if this_item != '~':
-         mycache = (win.getProperty("Fuzzy.context"), win.getProperty("Fuzzy.label"), win.getProperty("Fuzzy.xsp"))
-         cache_id = 'EPG_Match.' + this_item
-         _cache.set( cache_id, mycache, expiration=datetime.timedelta(days=1))
-
-   win.setProperty("Fuzzy.status", "free")
-   current_item = this_item
-   return current_item
-
-
-def notify(message):
-   addon = xbmcaddon.Addon("script.epg_fuzzy_match")
-   notification_enabled = addon.getSetting('notification_enabled')
-   if notification_enabled == 'false':
-      return ''
-
-   dialog.notification('EPG Match', message, xbmcgui.NOTIFICATION_INFO, 100)
-
-def ismovie(current_item):
-
-   episode_num = xbmc.getInfoLabel("ListItem.Episode")
-   season_num = xbmc.getInfoLabel("ListItem.Season")
-
-   if episode_num == '':
-       episode_num = -1
+    if not d['episode']:
+        d['episode'] = -1
+            
+    # build cache id
+    this_cache_id = 'EPG_Match8.'
+    for x in d:
+        this_cache_id = this_cache_id + '|' + str(d[x])
+    
+    # if it matches current processed data, then just return
+    if win.getProperty('Fuzzy.cache_id') == this_cache_id:
+        return
        
-   if season_num == '':
-       season_num = -1
+    # starting a new lookup, set new cache property
+    win.setProperty("Fuzzy.cache_id", this_cache_id)
+    
+    # check if data is already cached
+    mycache = _cache.get(this_cache_id)
+    
+    if mycache:
+       # cache data exists, set properties and return
+       
+       win.setProperty("Fuzzy.context", mycache[0])
+       win.setProperty("Fuzzy.label", mycache[1])
+       win.setProperty("Fuzzy.xsp", mycache[2])
+       _cache.set( this_cache_id, mycache, expiration=datetime.timedelta(days=1))
+       disp_notification(mycache[0])
+       debug = 'cache_hit: %s' % (this_cache_id)
+       debug_log(debug)
+       
+       debug = 'cache_results: %s : %s : %s' % (mycache[0], mycache[1], mycache[2])
+       debug_log(debug)
+       
+       
+       return
+    
+    # new lookup required, determine if a movie or a series
+    if int(d['season']) > -1 or int(d['episode']) > -1 or not d['ep_name'] == '':
+        debug = 'is a series: %s' % (this_cache_id)
+        debug_log(debug)
+        search_series(this_cache_id,**d)
 
-   episode_num = int(episode_num)
-   season_num = int(season_num)
+        mycache = []
+        
+        mycache.append(win.getProperty('Fuzzy.context'))
+        mycache.append(win.getProperty('Fuzzy.label'))
+        mycache.append(win.getProperty('Fuzzy.xsp'))
+         
+        debug = 'cache_store: %s' % (mycache)
+        debug_log(debug)
+        
+        _cache.set( this_cache_id, mycache, expiration=datetime.timedelta(days=1))      
+    
+    
+    elif not d['title']:
+        debug = 'no title: %s' % (this_cache_id)
+        debug_log(debug)
+        no_match()
+    elif not d['year']:
+        debug = 'no year: %s' % (this_cache_id)
+        debug_log(debug)
+        no_match()
+    else:
+        debug = 'is a movie: %s' % (this_cache_id)
+        debug_log(debug)
+        search_movies(this_cache_id,**d)
+        
+        mycache = []
+        
+        mycache.append(win.getProperty('Fuzzy.context'))
+        mycache.append(win.getProperty('Fuzzy.label'))
+        mycache.append(win.getProperty('Fuzzy.xsp'))
+         
+        debug = 'cache_store: %s' % (mycache)
+        debug_log(debug)
+        
+        _cache.set( this_cache_id, mycache, expiration=datetime.timedelta(days=1))    
 
 
-   if episode_num >= 0 or season_num >= 0:
-      current_item = '~'
-      return current_item
+def no_match():
+    win.setProperty("Fuzzy.context", "")
+    win.setProperty("Fuzzy.xsp", "")
+    win.setProperty("Fuzzy.label", "")
+    return
 
-   search_raw = xbmc.getInfoLabel("ListItem.EpgEventTitle")
-   search_movie = ''
-   search_year = ''
-   x = re.split("\(", search_raw, 1)
-   search_movie = str(x[0]).strip()
-   y = len(x)
+def search_series(cache_id, **kwargs):
+    search_title = kwargs.get('title')
+    search_imdbnumber = kwargs.get('imdbnumber')
+    search_episode_title = kwargs.get('ep_name')
+    search_season = kwargs.get('season')
+    search_episode = kwargs.get('episode')
 
-   if y == 2:
-      y = re.split("\)", x[1], 1)
-      y[0] = re.sub("[^0-9]+", "", y[0])
-      if y[0] != '':
-         search_year = int(y[0])
-
-   if search_year == '':
-      search_year = xbmc.getInfoLabel("ListItem.Year")
-
-   if search_movie == '' or search_year == '':
-      debug = 'EPG Fuzzy Match -  incomplete: ' + search_movie + 'x' + search_year
-      xbmc.log(debug, level=xbmc.LOGINFO)
-      current_item = '~'
-      return current_item
-
-   if current_item != '%s~%s' % (search_movie, search_year):
-      win.setProperty("Fuzzy.status", "busy")
-      win.setProperty("Fuzzy.match", "")
-      win.setProperty("Fuzzy.match_count", "")
-      return '%s~%s' % (search_movie, search_year)
-   else:
-      return current_item
-
-def lib_search(this_item):
-
-   x = re.split("~", this_item, 1)
-   search_movie = x[0]
+    ct_title = re.sub("[^0-9a-zA-Z]+", " ", search_title)
+    ct_title = re.sub(" {2}", " ", ct_title)
    
-   if len(x) < 2:
-      match_return = [this_item, 0, '', '', 0]
-      return match_return
-   
-   if x[1] == '':
-      match_return = [this_item, 0, '', '', 0]
-      return match_return
-   
-   search_year = int(x[1])
-   
-   min_year = search_year - 2
-   max_year = search_year + 2
+    debug = 'Series Cleaned: ' + ct_title
+    debug_log(debug)
 
-   # todo: strip out odd charcters
-   
-   this_movie = re.sub("[^0-9a-zA-Z]+", " ", search_movie)
-   this_movie = re.sub(" {2}", " ", this_movie)
-   
-   debug = 'EPG Fuzzy Match - split_movie: ' + this_movie
-   xbmc.log(debug, level=xbmc.LOGINFO)
+    search_series_parts = re.split(" ", ct_title)
+    
+    title_filter = ''
 
-   search_movie_parts = re.split(" ", this_movie)
-   
-   y = len(search_movie_parts)
-   last_index = y - 1
-   
-   if y == 1:
-      title_filter = '{"field": "title", "operator": "is", "value": "' + search_movie_parts[0] + '"}'
-   elif y == 2:
-      title_filter = '{"field": "title", "operator": "startswith", "value": "' + search_movie_parts[0] + '"}'
-      title_filter = title_filter + ',{"field": "title", "operator": "endswith", "value": "' + search_movie_parts[1] + '"}'
-   else:
-      title_filter = '{"field": "title", "operator": "startswith", "value": "' + search_movie_parts[0] + '"}'      
+    for part in search_series_parts:
+        if title_filter != '':
+            title_filter = title_filter + ','
+
+        title_filter = title_filter + '{"field": "title", "operator": "contains", "value": "' + part + '"}'
+
+
+
+    command = '{"jsonrpc": "2.0", ' \
+            '"method": "VideoLibrary.GetTVShows", ' \
+            '"params": { ' \
+            '"filter": { "and": [ %s ]}, ' \
+            '"sort": { "order": "ascending", "method": "label" }, ' \
+            '"properties": ["title", "imdbnumber", "year", "file", "premiered"] ' \
+            '}, "id": 1}' % (title_filter)
+
+    debug = 'JSON sent: ' + command
+    debug_log(debug)
+
+    result = json.loads(xbmc.executeJSONRPC(command))
+    matches = result['result']['limits']['total']
+    match_type = 'None'
+    tvshowid = ''
+    
+    for i in range(0, result['result']['limits']['total']):
+        
+        cr_title = result['result']['tvshows'][i]['title']
+        cr_title = re.sub("[^0-9a-zA-Z]+", " ", cr_title)
+        cr_title = re.sub(" {2}", " ", cr_title)
+
+        if result['result']['tvshows'][i]['imdbnumber'] == search_imdbnumber and search_imdbnumber != '':
+            # exact imdb match, only display this one
+            tvshowid = result['result']['tvshows'][i]['tvshowid']
+            match_type = 'imdb'
+            break
+        elif result['result']['tvshows'][i]['title'] == search_title:
+            # exact title match, only display this one
+            tvshowid = result['result']['tvshows'][i]['tvshowid']
+            match_type = 'title'
+            break
+        elif ct_title == cr_title and match_type != 'imdb' and match_type != 'title':
+            tvshowid = result['result']['tvshows'][i]['tvshowid']
+            match_type = 'fuzzy'           
+
+
+    if match_type == 'None' or tvshowid == '':
+        no_match()
+        return ''
+
+    debug = 'Found a match via %s , tvshowid: %s' % (match_type, tvshowid)
+    debug_log(debug)
+    
+    # now use tvshowid to see if this episode is found by SE or name
+    
+    command = '{"jsonrpc": "2.0", ' \
+            '"method": "VideoLibrary.GetEpisodes", ' \
+            '"params": { ' \
+            '"tvshowid": %s, ' \
+            '"properties": ["season", "episode", "firstaired", "originaltitle", "file"] ' \
+            '}, "id": 1}' % (tvshowid)
+
+    debug = 'JSON sent: ' + command
+    debug_log(debug)    
+    
+
+    result = json.loads(xbmc.executeJSONRPC(command))
+    matches = result['result']['limits']['total']
+    files = []
+    match_type = 'None'
+    
+    for i in range(0, result['result']['limits']['total']):
+
+        cr_title = result['result']['episodes'][i]['originaltitle']
+        cr_title = re.sub("[^0-9a-zA-Z]+", " ", cr_title)
+        cr_title = re.sub(" {2}", " ", cr_title)
+
+        if result['result']['episodes'][i]['season'] == search_season and result['result']['episodes'][i]['episode'] == search_episode:
+            # SE match
+            files.append(result['result']['episodes'][i]['file'])
+            match_type = 'SE'
+        elif result['result']['episodes'][i]['originaltitle'] == search_episode_title:
+            # exact title match, only display this one
+            files.append(result['result']['episodes'][i]['file'])
+            match_type = 'title'
+        elif ct_title == cr_title:
+            files.append(result['result']['episodes'][i]['file'])
+            match_type = 'fuzzy'           
+    
+
+    if len(files) > 0:
       
-      title_filter = title_filter + ',{"field": "title", "operator": "endswith", "value": "' + search_movie_parts[last_index] + '"}'
+        xsp = '{"rules":{"or":['
+
+
+        for i in range(0, len(files)):
+            if i > 0:
+                xsp = xsp + ","
+            xsp = xsp + '{"field":"filename","operator":"is","value":"%s"}' % (files[i])
+            file_path = files[i]
+
+        xsp = xsp + ']},"type":"tvshows"}'
+
+        xsp = urllib.parse.quote_plus(xsp)
+
+        if i > 0:
+            # indicate multi matches, set context to send to list of matches, trigger notification of such
+            disp_notification('Multi')
+            win.setProperty("Fuzzy.context", "Multi")
+            win.setProperty("Fuzzy.xsp", xsp)
+         
+        else:
+            # indicate 1 match, set context to go to dialogvideoinfo window, trigger notification of such
+            disp_notification('Single')
+            win.setProperty("Fuzzy.context", "Single")
+            win.setProperty("Fuzzy.label",search_title)
+            win.setProperty("Fuzzy.xsp", file_path)
+            
+        return 
+
+    # no matches, no context menu addition, trigger notification of no match(es) found
+    no_match()
+    # finally, set cache
+    
+    
+    
+    
+    
+    
+    
+
+def search_movies(cache_id, **kwargs):
+    # sometimes PVR title may include year,
+    # if so, "clean" the title and grab that year
+    # in case actual Year field empty or different
+    
+    search_raw = kwargs.get('title')
+    search_year = kwargs.get('year')
+    search_imdbnumber = kwargs.get('imdbnumber')
+    x = re.split("\(", search_raw, 1)
+    search_movie = str(x[0]).strip()
+    y = len(x)
+    if y == 2:
+        y = re.split("\)", x[1], 1)
+        y[0] = re.sub("[^0-9]+", "", y[0])
+        if y[0]:
+            if int(y[0]) > 1900 and int(y[0]) < 2100:
+                split_year = int(y[0])
+    
+    if search_year == '':
+        search_year = split_year
+        
+    if (search_movie == '' or search_year == '') and search_imdbnumber == '':
+        no_match()
+        debug = 'Movie missing title (%s) or year (%s) and no imdbnumber for cache: %s' % (search_movie, search_year, cache_id)
+        debug_log(debug)
+        return
+
+    search_result = lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs)
+    # returns: match_type, files
+
+    if len(search_result[1]) > 0:
       
-      search_movie_parts.pop(last_index)
-      search_movie_parts.pop(0)
+        xsp = '{"rules":{"or":['
       
-      for part in search_movie_parts:
-         title_filter = title_filter + ',{"field": "title", "operator": "contains", "value": "' + part + '"}'
+        files = search_result[1]
+
+        for i in range(0, len(files)):
+            if i > 0:
+                xsp = xsp + ","
+            xsp = xsp + '{"field":"filename","operator":"is","value":"%s"}' % (files[i])
+            file_path = files[i]
+
+        xsp = xsp + ']},"type":"movies"}'
+
+        xsp = urllib.parse.quote_plus(xsp)
+
+        if i > 0:
+            # indicate multi matches, set context to send to list of matches, trigger notification of such
+            disp_notification('Multi')
+            win.setProperty("Fuzzy.context", "Multi")
+            win.setProperty("Fuzzy.xsp", xsp)
+         
+        else:
+            # indicate 1 match, set context to go to dialogvideoinfo window, trigger notification of such
+            disp_notification('Single')
+            win.setProperty("Fuzzy.context", "Single")
+            win.setProperty("Fuzzy.label",search_movie)
+            win.setProperty("Fuzzy.xsp", file_path)
+            
+        return 
+
+    # no matches, no context menu addition, trigger notification of no match(es) found
+    no_match()
+    # finally, set cache
+    
+
+
+
+def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs):
+
+    min_year = int(search_year) - 2
+    max_year = int(search_year) + 2
+
+    ct_movie = re.sub("[^0-9a-zA-Z]+", " ", search_movie)
+    ct_movie = re.sub(" {2}", " ", ct_movie)
    
-   # add in the year range
-   title_filter = title_filter + ',{"field": "year", "operator": "greaterthan", "value": "' + str(min_year) + '"}'
-   title_filter = title_filter + ',{"field": "year", "operator": "lessthan", "value": "' + str(max_year) + '"}'
+    debug = 'Movie Cleaned: ' + ct_movie
+    debug_log(debug)
 
-   command = '{"jsonrpc": "2.0", ' \
-             '"method": "VideoLibrary.GetMovies", ' \
-             '"params": { ' \
-                '"filter": { "and": [ %s ]}, ' \
-                '"sort": { "order": "ascending", "method": "label" }, ' \
-                '"properties": ["title", "imdbnumber", "year", "file"] ' \
-                '}, "id": 1}' % (title_filter)
+    search_movie_parts = re.split(" ", ct_movie)
+    
+    title_filter = ''
 
-   debug = 'EPG Fuzzy Match - JSON: ' + command
+    for part in search_movie_parts:
+        if title_filter != '':
+            title_filter = title_filter + ','
 
-   xbmc.log(debug, level=xbmc.LOGINFO)
-   result = json.loads(xbmc.executeJSONRPC(command))
-   matches = result['result']['limits']['total']
-   
-   files = ''
-   for i in range(0, result['result']['limits']['total']):
-      if files == '':
-         files = result['result']['movies'][i]['file']
-      else:
-         files = files + '~' + result['result']['movies'][i]['file']
-   match_return = [this_item, matches, files, search_movie, search_year]
- 
-   return match_return
- 
+        title_filter = title_filter + '{"field": "title", "operator": "contains", "value": "' + part + '"}'
+
+    if search_imdbnumber != '':
+        imdb_filter = '{"field": "imdbnumber", "operator": "is", "value": "%s"}' % (search_imdbnumber)
+
+    if search_imdbnumber != '':
+        command = '{"jsonrpc": "2.0", ' \
+            '"method": "VideoLibrary.GetMovies", ' \
+            '"params": { ' \
+            '"filter": { "or" : [{"and": [%s]},%s] }, ' \
+            '"sort": { "order": "ascending", "method": "label" }, ' \
+            '"properties": ["title", "imdbnumber", "year", "file"] ' \
+            '}, "id": 1}' % (title_filter, imdb_filter)
+    else:
+        command = '{"jsonrpc": "2.0", ' \
+            '"method": "VideoLibrary.GetMovies", ' \
+            '"params": { ' \
+            '"filter": { "and": [ %s ]}, ' \
+            '"sort": { "order": "ascending", "method": "label" }, ' \
+            '"properties": ["title", "imdbnumber", "year", "file"] ' \
+            '}, "id": 1}' % (title_filter)
+
+    debug = 'JSON sent: ' + command
+    debug_log(debug)
+
+    result = json.loads(xbmc.executeJSONRPC(command))
+    matches = result['result']['limits']['total']
+    files = []
+    match_type = 'None'
+    
+    for i in range(0, result['result']['limits']['total']):
+        
+        cr_movie = result['result']['movies'][i]['title']
+        cr_movie = re.sub("[^0-9a-zA-Z]+", " ", cr_movie)
+        cr_movie = re.sub(" {2}", " ", cr_movie)
+
+        if result['result']['movies'][i]['imdbnumber'] == search_imdbnumber and search_imdbnumber != '':
+            # exact imdb match, only display this one
+            files = [result['result']['movies'][i]['file']]
+            match_type = 'imdb'
+            break
+        elif result['result']['movies'][i]['title'] == search_movie:
+            # exact title match, check year
+            if result['result']['movies'][i]['year'] == search_year:
+                files = [result['result']['movies'][i]['file']]
+                match_type = 'title-year'
+                break
+            elif result['result']['movies'][i]['year'] > min_year \
+                and result['result']['movies'][i]['year'] < max_year:
+                # year +/- limits, so add to list and don't break
+                files.append(result['result']['movies'][i]['file'])
+                match_type = 'title-fuzzy_year'
+        elif ct_movie == cr_movie:
+            # cleaned title match
+            if result['result']['movies'][i]['year'] == search_year:
+                files = [result['result']['movies'][i]['file']]
+                match_type = 'fuzzy_title-year'
+            elif result['result']['movies'][i]['year'] > min_year \
+                and result['result']['movies'][i]['year'] < max_year:
+                # year +/- limits, so add to list and don't break
+                files.append(result['result']['movies'][i]['file'])
+                match_type = 'fuzzy_title-fuzzy_year'            
+
+    # completed search, act on results
+    
+    match_return = [match_type, files]
+
+    return match_return
 
 
 if __name__ == '__main__':
-
-    current_item = '~'
 
     monitor = xbmc.Monitor()
     xbmc.log('EPG Fuzzy Match - Service handler started', level=xbmc.LOGINFO)
@@ -256,7 +449,23 @@ if __name__ == '__main__':
     while not monitor.abortRequested():
         if monitor.waitForAbort(0.5): break
 
-        # call service
-        current_item = monitorgui(current_item)
+        if not xbmc.getCondVisibility('Window.IsActive(%s)' % 'MyPVRGuide.xml'):
+            no_match()
+            win.setProperty("Fuzzy.cache_id", "")
+            xbmc.sleep(1000)
+
+        elif win.getProperty('Fuzzy.status') == 'busy':
+            xbmc.sleep(100)
+
+        elif xbmc.getInfoLabel("ListItem.EpgEventTitle") != win.getProperty('Fuzzy.epgtitle'):
+            no_match()
+            win.setProperty("Fuzzy.epgtitle", xbmc.getInfoLabel("ListItem.EpgEventTitle"))
+            xbmc.sleep(100)
+
+        else:
+            # call service
+            win.setProperty("Fuzzy.status", "busy")
+            monitorgui()
+            win.setProperty("Fuzzy.status", "")
 
     xbmc.log('EPG Fuzzy Match - Service handler ended', level=xbmc.LOGINFO)
