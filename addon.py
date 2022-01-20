@@ -57,7 +57,7 @@ def monitorgui():
         d['episode'] = -1
             
     # build cache id
-    this_cache_id = 'EPG_Match10.'
+    this_cache_id = 'EPG_Match14'
     for x in d:
         this_cache_id = this_cache_id + '|' + str(d[x])
     
@@ -138,7 +138,14 @@ def search_series(cache_id, **kwargs):
     search_episode_title = kwargs.get('ep_name')
     search_season = kwargs.get('season')
     search_episode = kwargs.get('episode')
-    search_org_date = kwargs.get('org_date')
+    search_rel_date = kwargs.get('rel_date')
+    search_prem_date = kwargs.get('prem_date')
+    
+    
+    fix_date = re.split("\/", search_prem_date)
+    y = len(fix_date)
+    if y == 3:
+        search_prem_date = fix_date[2] + '-' + fix_date[0] + '-' + fix_date[1]
     
     ct_title = clean_string(search_title)
 
@@ -186,7 +193,7 @@ def search_series(cache_id, **kwargs):
             tvshowid = result['result']['tvshows'][i]['tvshowid']
             match_type = 'title'
             break
-        elif result['result']['tvshows'][i]['premiered'] == search_org_date and match_type != 'imdb' and match_type != 'title':
+        elif result['result']['tvshows'][i]['premiered'] == search_rel_date and match_type != 'imdb' and match_type != 'title':
             tvshowid = result['result']['tvshows'][i]['tvshowid']
             match_type = 'premiered'
         elif ct_title == cr_title and match_type != 'imdb' and match_type != 'title' and match_type != 'premiered':
@@ -219,6 +226,8 @@ def search_series(cache_id, **kwargs):
     files = []
     match_type = 'None'
     
+    cr_title = clean_string(search_episode_title)
+    
     for i in range(0, result['result']['limits']['total']):
 
         ct_title = clean_string(result['result']['episodes'][i]['originaltitle'])
@@ -227,16 +236,34 @@ def search_series(cache_id, **kwargs):
             # SE match
             files.append(result['result']['episodes'][i]['file'])
             match_type = 'SE'
+            debug = 'Raw episode data match %s : %s %s - %s %s' % (match_type, search_season, search_episode, result['result']['episodes'][i]['season'], result['result']['episodes'][i]['episode'])
+            debug_log(debug)
+            
         elif result['result']['episodes'][i]['originaltitle'] == search_episode_title:
             # exact title match, only display this one
             files.append(result['result']['episodes'][i]['file'])
             match_type = 'title'
+            debug = 'Raw episode data match %s : %s - %s' % (match_type, search_episode_title, result['result']['episodes'][i]['originaltitle'])
+            debug_log(debug)
+            
+        elif result['result']['episodes'][i]['firstaired'] == search_prem_date:
+            files.append(result['result']['episodes'][i]['file'])
+            match_type = 'airdate'
+            debug = 'Raw episode data match %s : %s - %s' % (match_type, search_prem_date, result['result']['episodes'][i]['firstaired'])
+            debug_log(debug)
+            
         elif ct_title == cr_title:
             files.append(result['result']['episodes'][i]['file'])
             match_type = 'fuzzy'           
-    
+            debug = 'Raw episode data match %s : %s - %s' % (match_type, ct_title, cr_title)
+            debug_log(debug)
+        
 
     if len(files) > 0:
+        
+        
+        debug = 'Found a match for episode via %s ' % (match_type)
+        debug_log(debug)
       
         xsp = '{"rules":{"or":['
 
