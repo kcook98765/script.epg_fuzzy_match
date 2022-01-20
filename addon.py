@@ -57,7 +57,7 @@ def monitorgui():
         d['episode'] = -1
             
     # build cache id
-    this_cache_id = 'EPG_Match8.'
+    this_cache_id = 'EPG_Match10.'
     for x in d:
         this_cache_id = this_cache_id + '|' + str(d[x])
     
@@ -77,15 +77,12 @@ def monitorgui():
        win.setProperty("Fuzzy.context", mycache[0])
        win.setProperty("Fuzzy.label", mycache[1])
        win.setProperty("Fuzzy.xsp", mycache[2])
-       _cache.set( this_cache_id, mycache, expiration=datetime.timedelta(days=1))
+       set_cache(this_cache_id)
        disp_notification(mycache[0])
        debug = 'cache_hit: %s' % (this_cache_id)
        debug_log(debug)
-       
        debug = 'cache_results: %s : %s : %s' % (mycache[0], mycache[1], mycache[2])
        debug_log(debug)
-       
-       
        return
     
     # new lookup required, determine if a movie or a series
@@ -93,19 +90,7 @@ def monitorgui():
         debug = 'is a series: %s' % (this_cache_id)
         debug_log(debug)
         search_series(this_cache_id,**d)
-
-        mycache = []
-        
-        mycache.append(win.getProperty('Fuzzy.context'))
-        mycache.append(win.getProperty('Fuzzy.label'))
-        mycache.append(win.getProperty('Fuzzy.xsp'))
-         
-        debug = 'cache_store: %s' % (mycache)
-        debug_log(debug)
-        
-        _cache.set( this_cache_id, mycache, expiration=datetime.timedelta(days=1))      
-    
-    
+        set_cache(this_cache_id)
     elif not d['title']:
         debug = 'no title: %s' % (this_cache_id)
         debug_log(debug)
@@ -118,18 +103,18 @@ def monitorgui():
         debug = 'is a movie: %s' % (this_cache_id)
         debug_log(debug)
         search_movies(this_cache_id,**d)
-        
-        mycache = []
-        
-        mycache.append(win.getProperty('Fuzzy.context'))
-        mycache.append(win.getProperty('Fuzzy.label'))
-        mycache.append(win.getProperty('Fuzzy.xsp'))
-         
-        debug = 'cache_store: %s' % (mycache)
-        debug_log(debug)
-        
-        _cache.set( this_cache_id, mycache, expiration=datetime.timedelta(days=1))    
+        set_cache(this_cache_id)
+    return
 
+def set_cache(this_cache_id):
+    mycache = []
+    mycache.append(win.getProperty('Fuzzy.context'))
+    mycache.append(win.getProperty('Fuzzy.label'))
+    mycache.append(win.getProperty('Fuzzy.xsp'))
+    debug = 'cache_store: %s' % (mycache)
+    debug_log(debug)
+    _cache.set( this_cache_id, mycache, expiration=datetime.timedelta(days=1))
+    return
 
 def no_match():
     win.setProperty("Fuzzy.context", "")
@@ -137,18 +122,25 @@ def no_match():
     win.setProperty("Fuzzy.label", "")
     return
 
+def clean_string(s):
+    out = re.sub("[^0-9a-zA-Z]+", " ", s)
+    out = re.sub(" {2}", " ", out)
+    out = out.lower()
+
+#    debug = 'Title Cleaned: ' + out
+#    debug_log(debug)
+    
+    return out
+
 def search_series(cache_id, **kwargs):
     search_title = kwargs.get('title')
     search_imdbnumber = kwargs.get('imdbnumber')
     search_episode_title = kwargs.get('ep_name')
     search_season = kwargs.get('season')
     search_episode = kwargs.get('episode')
-
-    ct_title = re.sub("[^0-9a-zA-Z]+", " ", search_title)
-    ct_title = re.sub(" {2}", " ", ct_title)
-   
-    debug = 'Series Cleaned: ' + ct_title
-    debug_log(debug)
+    search_org_date = kwargs.get('org_date')
+    
+    ct_title = clean_string(search_title)
 
     search_series_parts = re.split(" ", ct_title)
     
@@ -180,9 +172,9 @@ def search_series(cache_id, **kwargs):
     
     for i in range(0, result['result']['limits']['total']):
         
-        cr_title = result['result']['tvshows'][i]['title']
-        cr_title = re.sub("[^0-9a-zA-Z]+", " ", cr_title)
-        cr_title = re.sub(" {2}", " ", cr_title)
+        
+        cr_title = clean_string(result['result']['tvshows'][i]['title'])
+
 
         if result['result']['tvshows'][i]['imdbnumber'] == search_imdbnumber and search_imdbnumber != '':
             # exact imdb match, only display this one
@@ -194,16 +186,19 @@ def search_series(cache_id, **kwargs):
             tvshowid = result['result']['tvshows'][i]['tvshowid']
             match_type = 'title'
             break
-        elif ct_title == cr_title and match_type != 'imdb' and match_type != 'title':
+        elif result['result']['tvshows'][i]['premiered'] == search_org_date and match_type != 'imdb' and match_type != 'title':
             tvshowid = result['result']['tvshows'][i]['tvshowid']
-            match_type = 'fuzzy'           
+            match_type = 'premiered'
+        elif ct_title == cr_title and match_type != 'imdb' and match_type != 'title' and match_type != 'premiered':
+            tvshowid = result['result']['tvshows'][i]['tvshowid']
+            match_type = 'fuzzy'
 
 
     if match_type == 'None' or tvshowid == '':
         no_match()
         return ''
 
-    debug = 'Found a match via %s , tvshowid: %s' % (match_type, tvshowid)
+    debug = 'Found a match for series via %s , tvshowid: %s' % (match_type, tvshowid)
     debug_log(debug)
     
     # now use tvshowid to see if this episode is found by SE or name
@@ -226,9 +221,7 @@ def search_series(cache_id, **kwargs):
     
     for i in range(0, result['result']['limits']['total']):
 
-        cr_title = result['result']['episodes'][i]['originaltitle']
-        cr_title = re.sub("[^0-9a-zA-Z]+", " ", cr_title)
-        cr_title = re.sub(" {2}", " ", cr_title)
+        ct_title = clean_string(result['result']['episodes'][i]['originaltitle'])
 
         if result['result']['episodes'][i]['season'] == search_season and result['result']['episodes'][i]['episode'] == search_episode:
             # SE match
@@ -276,13 +269,6 @@ def search_series(cache_id, **kwargs):
     # no matches, no context menu addition, trigger notification of no match(es) found
     no_match()
     # finally, set cache
-    
-    
-    
-    
-    
-    
-    
 
 def search_movies(cache_id, **kwargs):
     # sometimes PVR title may include year,
@@ -348,20 +334,13 @@ def search_movies(cache_id, **kwargs):
     # no matches, no context menu addition, trigger notification of no match(es) found
     no_match()
     # finally, set cache
-    
-
-
 
 def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs):
 
     min_year = int(search_year) - 2
     max_year = int(search_year) + 2
-
-    ct_movie = re.sub("[^0-9a-zA-Z]+", " ", search_movie)
-    ct_movie = re.sub(" {2}", " ", ct_movie)
-   
-    debug = 'Movie Cleaned: ' + ct_movie
-    debug_log(debug)
+    
+    ct_movie = clean_string(search_movie)
 
     search_movie_parts = re.split(" ", ct_movie)
     
@@ -403,10 +382,13 @@ def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs)
     
     for i in range(0, result['result']['limits']['total']):
         
-        cr_movie = result['result']['movies'][i]['title']
-        cr_movie = re.sub("[^0-9a-zA-Z]+", " ", cr_movie)
-        cr_movie = re.sub(" {2}", " ", cr_movie)
+        cr_movie = clean_string(result['result']['movies'][i]['title'])
 
+        debug = 'Checking for movie match : %s vs lookup: %s' % (ct_movie, cr_movie)
+        debug_log(debug)
+
+
+        
         if result['result']['movies'][i]['imdbnumber'] == search_imdbnumber and search_imdbnumber != '':
             # exact imdb match, only display this one
             files = [result['result']['movies'][i]['file']]
@@ -436,9 +418,15 @@ def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs)
 
     # completed search, act on results
     
+    debug = 'Found a match via %s , movie: %s' % (match_type, search_movie)
+    debug_log(debug)
+    
+    
     match_return = [match_type, files]
 
     return match_return
+
+
 
 
 if __name__ == '__main__':
