@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.epg_fuzzy_match" name="EPG Fuzzy Match" version="0.2.1" provider-name="kcook98765">
+<addon id="script.epg_fuzzy_match" name="EPG Fuzzy Match" version="0.2.2" provider-name="kcook98765">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 		<import addon="script.module.simplecache" version="2.0.2" />
@@ -19,6 +19,9 @@
 			<icon>icon.png</icon>
 		</assets>
 		<news>
+V0.2.2 Have added series matching		
+		
+		
 V0.1.0 Added Settings section to allow toggle of Notifications.		
 
 V0.0.1 Initial Version</news>
