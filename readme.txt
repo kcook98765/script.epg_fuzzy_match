@@ -1,5 +1,13 @@
+
+
 # update:
 Add settings for this service, to enable/disable notifications (Context "Match" entry will still be inserted for match(es), just no notification popups.
+Added search for series episode matching
+Use imdb number matching (when available)
+Refactored some code
+Adjusted the serice wake-up process to not run until focused on a single entry for 100 ms (to avoid wated calls while scrolling/navigating fast)
+Fixed simplecache usage, now actually works.
+Added plenty of debuging
 
 
 # script.epg_fuzzy_match
@@ -7,7 +15,7 @@ Add settings for this service, to enable/disable notifications (Context "Match" 
  
  This is a simple service that requires no skin specific changes to use.
  
- When you are in the PVR Guide and focus on a Movie, this service automatically looks for a matching movie in your local library using some "fuzzy" matching (IE year can be +/- 1 year to account for possible EPG year being different than local library year.
+ When you are in the PVR Guide and focus on a Movie or Series, this service automatically looks for a matching movie or Series (Episode) in your local library using some "fuzzy" matching (IE year can be +/- 1 year to account for possible EPG year being different than local library year.
  
  If a match, or matches are found, then you'll see a brief notification appear calling out the match(es).
  
@@ -23,8 +31,6 @@ Add settings for this service, to enable/disable notifications (Context "Match" 
  
  TODO:
  
- apply to TV Series (though this will require some work as local vs pvr may use different entities to set season and episode numbers)
- 
- Add optional skin Properties (so skinners could display related match data directly in skin)
+  Add optional skin Properties (so skinners could display related match data directly in skin)
  
  Code cleanup and optimizations (though already using simplecache to reduce JSON calls for entry matching).
