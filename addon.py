@@ -57,7 +57,7 @@ def monitorgui():
         d['episode'] = -1
             
     # build cache id
-    this_cache_id = 'EPG_Match14'
+    this_cache_id = 'EPG_Match17'
     for x in d:
         this_cache_id = this_cache_id + '|' + str(d[x])
     
@@ -232,7 +232,7 @@ def search_series(cache_id, **kwargs):
 
         ct_title = clean_string(result['result']['episodes'][i]['originaltitle'])
 
-        if result['result']['episodes'][i]['season'] == search_season and result['result']['episodes'][i]['episode'] == search_episode:
+        if result['result']['episodes'][i]['season'] == search_season and result['result']['episodes'][i]['episode'] == search_episode and match_type != 'airdate':
             # SE match
             files.append(result['result']['episodes'][i]['file'])
             match_type = 'SE'
@@ -241,10 +241,11 @@ def search_series(cache_id, **kwargs):
             
         elif result['result']['episodes'][i]['originaltitle'] == search_episode_title:
             # exact title match, only display this one
-            files.append(result['result']['episodes'][i]['file'])
+            files = [result['result']['episodes'][i]['file']]
             match_type = 'title'
             debug = 'Raw episode data match %s : %s - %s' % (match_type, search_episode_title, result['result']['episodes'][i]['originaltitle'])
             debug_log(debug)
+            break
             
         elif result['result']['episodes'][i]['firstaired'] == search_prem_date:
             files.append(result['result']['episodes'][i]['file'])
@@ -253,10 +254,11 @@ def search_series(cache_id, **kwargs):
             debug_log(debug)
             
         elif ct_title == cr_title:
-            files.append(result['result']['episodes'][i]['file'])
+            files = [result['result']['episodes'][i]['file']]
             match_type = 'fuzzy'           
             debug = 'Raw episode data match %s : %s - %s' % (match_type, ct_title, cr_title)
             debug_log(debug)
+            break
         
 
     if len(files) > 0:
@@ -276,7 +278,7 @@ def search_series(cache_id, **kwargs):
 
         xsp = xsp + ']},"type":"tvshows"}'
 
-        xsp = urllib.parse.quote_plus(xsp)
+        xsp = 'Videos,videodb://tvshows/titles/?xsp=' + urllib.parse.quote_plus(xsp)
 
         if i > 0:
             # indicate multi matches, set context to send to list of matches, trigger notification of such
@@ -341,7 +343,7 @@ def search_movies(cache_id, **kwargs):
 
         xsp = xsp + ']},"type":"movies"}'
 
-        xsp = urllib.parse.quote_plus(xsp)
+        xsp = 'Videos,videodb://movies/titles/?xsp=' + urllib.parse.quote_plus(xsp)
 
         if i > 0:
             # indicate multi matches, set context to send to list of matches, trigger notification of such

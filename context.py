@@ -21,5 +21,5 @@ if __name__ == '__main__':
             dialog.info(li)
         elif sys.argv[1] == "Multi":
             xbmc.executebuiltin('Dialog.Close(all,true)')
-            xbmc.executebuiltin('ActivateWindow(Videos,videodb://movies/titles/?xsp=%s,return)' % (xsp))
+            xbmc.executebuiltin('ActivateWindow(%s,return)' % (xsp))
  
