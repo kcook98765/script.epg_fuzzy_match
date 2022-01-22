@@ -276,7 +276,7 @@ def search_series(cache_id, **kwargs):
             xsp = xsp + '{"field":"filename","operator":"is","value":"%s"}' % (files[i])
             file_path = files[i]
 
-        xsp = xsp + ']},"type":"tvshows"}'
+        xsp = xsp + ']},"type":"episodes"}'
 
         xsp = 'Videos,videodb://tvshows/titles/?xsp=' + urllib.parse.quote_plus(xsp)
 
@@ -366,8 +366,8 @@ def search_movies(cache_id, **kwargs):
 
 def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs):
 
-    min_year = int(search_year) - 2
-    max_year = int(search_year) + 2
+    min_year = int(search_year) - 5
+    max_year = int(search_year) + 5
     
     ct_movie = clean_string(search_movie)
 
@@ -437,7 +437,7 @@ def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs)
         elif ct_movie == cr_movie:
             # cleaned title match
             if result['result']['movies'][i]['year'] == search_year:
-                files = [result['result']['movies'][i]['file']]
+                files.append(result['result']['movies'][i]['file'])
                 match_type = 'fuzzy_title-year'
             elif result['result']['movies'][i]['year'] > min_year \
                 and result['result']['movies'][i]['year'] < max_year:
