@@ -9,6 +9,9 @@ dialog = xbmcgui.Dialog()
 win = xbmcgui.Window(10000)
 _cache = simplecache.SimpleCache()
 
+# TODO, use md5 hashing for DB keys :  https://www.geeksforgeeks.org/md5-hash-python/
+
+
 def disp_notification(type):
     addon = xbmcaddon.Addon("script.epg_fuzzy_match")
     notification_enabled = addon.getSetting('notification_enabled')
@@ -57,7 +60,7 @@ def monitorgui():
         d['episode'] = -1
             
     # build cache id
-    this_cache_id = 'EPG_Match17'
+    this_cache_id = 'EPG_Match18'
     for x in d:
         this_cache_id = this_cache_id + '|' + str(d[x])
     
@@ -278,7 +281,7 @@ def search_series(cache_id, **kwargs):
 
         xsp = xsp + ']},"type":"episodes"}'
 
-        xsp = 'Videos,videodb://tvshows/titles/?xsp=' + urllib.parse.quote_plus(xsp)
+        xsp = 'Videos,videodb://tvshows/titles/-1/-1/-1/-1/?xsp=' + urllib.parse.quote_plus(xsp)
 
         if i > 0:
             # indicate multi matches, set context to send to list of matches, trigger notification of such
