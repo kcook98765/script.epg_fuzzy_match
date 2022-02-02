@@ -274,7 +274,7 @@ def search_series(cache_id, **kwargs):
             debug_log(debug)
             break
             
-        elif result['result']['episodes'][i]['firstaired'] == search_rel_date:
+        elif result['result']['episodes'][i]['firstaired'] == search_rel_date and result['result']['episodes'][i]['firstaired'] != '':
             files.append(result['result']['episodes'][i]['file'])
             match_type = 'airdate'
             debug = 'Raw episode data match %s : %s - %s' % (match_type, search_rel_date, result['result']['episodes'][i]['firstaired'])
