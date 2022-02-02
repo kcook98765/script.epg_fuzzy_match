@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.epg_fuzzy_match" name="EPG Fuzzy Match" version="0.2.5" provider-name="kcook98765">
+<addon id="script.epg_fuzzy_match" name="EPG Fuzzy Match" version="0.2.6" provider-name="kcook98765">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 		<import addon="script.module.simplecache" version="2.0.2" />
@@ -19,6 +19,11 @@
 			<icon>icon.png</icon>
 		</assets>
 		<news>
+V0.2.6 Fix Series Episode matching, account for "ampersand" vs "and" in titles. 
+Added debug setting toggle.
+Add more debugging.
+Try actor cast matching fallback for movie matching.
+		
 V0.2.5 Fix display for multi match Series episodes.
 		
 V0.2.4 Allow wider range of movie years, fix episode multi listing.

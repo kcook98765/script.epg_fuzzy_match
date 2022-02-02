@@ -9,6 +9,13 @@
 					<control type="toggle" />
 				</setting>
 			</group>
+			<group id="2" label="group_label">
+				<setting id="debug_enabled" type="boolean" label="32004" help="32005">
+					<default>false</default>
+					<level>0</level>
+					<control type="toggle" />
+				</setting>
+			</group>
 		</category>
 	</section>
 </settings>

@@ -32,3 +32,11 @@ msgstr ""
 msgctxt "#32003"
 msgid ""
 msgstr ""
+
+msgctxt "#32004"
+msgid "Enable Debug Data"
+msgstr ""
+
+msgctxt "#32005"
+msgid "When enabled debug data is logged"
+msgstr ""
