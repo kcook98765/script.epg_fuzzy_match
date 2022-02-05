@@ -484,20 +484,22 @@ def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs)
                 break
             elif result['result']['movies'][i]['year'] > min_year \
                 and result['result']['movies'][i]['year'] < max_year:
-                # year +/- limits, so add to list and don't break
-                files.append(result['result']['movies'][i]['file'])
+                files = [result['result']['movies'][i]['file']]
                 match_type = 'title-fuzzy_year'
+                break
         elif ct_movie == cr_movie:
             # cleaned title match
             if result['result']['movies'][i]['year'] == search_year:
-                files.append(result['result']['movies'][i]['file'])
+                files = [result['result']['movies'][i]['file']]
                 match_type = 'fuzzy_title-year'
+                break
             elif result['result']['movies'][i]['year'] > min_year \
                 and result['result']['movies'][i]['year'] < max_year:
                 # year +/- limits, so add to list and don't break
-                files.append(result['result']['movies'][i]['file'])
-                match_type = 'fuzzy_title-fuzzy_year'            
-        elif cast_match_count == len(y):
+                files = [result['result']['movies'][i]['file']]
+                match_type = 'fuzzy_title-fuzzy_year'
+                break
+        elif cast_match_count == len(y) and match_type == 'None':
                 files.append(result['result']['movies'][i]['file'])
                 match_type = 'cast_match'
         else:
