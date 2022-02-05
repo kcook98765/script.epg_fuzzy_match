@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.epg_fuzzy_match" name="EPG Fuzzy Match" version="0.2.7" provider-name="kcook98765">
+<addon id="script.epg_fuzzy_match" name="EPG Fuzzy Match" version="0.2.8" provider-name="kcook98765">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 		<import addon="script.module.simplecache" version="2.0.2" />
 	</requires>
 	<extension point="xbmc.service" library="addon.py">
+		<provides>executable</provides>
+	</extension>
+	<extension point="xbmc.python.script" library="context.py">
 		<provides>executable</provides>
 	</extension>
 	<extension point="xbmc.addon.metadata">
@@ -19,6 +22,8 @@
 			<icon>icon.png</icon>
 		</assets>
 		<news>
+V0.2.8 Add script service to be able to call link to movie/show info page from skin		
+		
 V0.2.7 Bug fix from prev version.
 
 V0.2.6 Fix Series Episode matching, account for "ampersand" vs "and" in titles. 
