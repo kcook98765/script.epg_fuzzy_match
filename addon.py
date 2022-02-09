@@ -43,9 +43,15 @@ def monitorgui():
     # gather all the pieces to uniquely identify 
     # the current item highlighted in guide
     
+    imdb_id = xbmc.getInfoLabel("ListItem.IMDBNumber")
+    
+    if imdb_id == '':
+        imdb_id = win.getProperty('SkinHelper.ListItem.Imdbnumber')
+   
+    
     d = {
         "title" : xbmc.getInfoLabel("ListItem.EpgEventTitle"),
-        "imdbnumber" : xbmc.getInfoLabel("ListItem.IMDBNumber"),
+        "imdbnumber" : imdb_id,
         "year" : xbmc.getInfoLabel("ListItem.Year"),
         "season" : xbmc.getInfoLabel("ListItem.Season"),
         "episode" : xbmc.getInfoLabel("ListItem.Episode"),
@@ -419,6 +425,8 @@ def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs)
     y = re.split("\n", search_cast)
     
     title_filter = ''
+    alt_title_filter = ''
+    do_or = ''
 
     for part in search_movie_parts:
         if title_filter != '':
@@ -426,17 +434,69 @@ def lib_search(cache_id, search_movie, search_year, search_imdbnumber, **kwargs)
 
         title_filter = title_filter + '{"field": "title", "operator": "contains", "value": "' + part + '"}'
 
-    if search_imdbnumber != '':
-        imdb_filter = '{"field": "imdbnumber", "operator": "is", "value": "%s"}' % (search_imdbnumber)
+        if alt_title_filter != '':
+            alt_title_filter = alt_title_filter + ','
+            
+        alt_part = part
+            
+        if part == '0':
+            alt_part = 'zero'
+        elif part == '1':
+            alt_part = 'one'
+        elif part == '2':
+            alt_part = 'two'
+        elif part == '3':
+            alt_part = 'three'
+        elif part == '4':
+            alt_part = 'four'
+        elif part == '5':
+            alt_part = 'five'
+        elif part == '6':
+            alt_part = 'six'
+        elif part == '7':
+            alt_part = 'seven'
+        elif part == '8':
+            alt_part = 'eight'
+        elif part == '9':
+            alt_part = 'nine'
+        elif part == '10':
+            alt_part = 'ten'
+        elif part == 'zero':
+            alt_part = '0'
+        elif part == 'one':
+            alt_part = '1'
+        elif part == 'two':
+            alt_part = '2'
+        elif part == 'three':
+            alt_part = '3'
+        elif part == 'four':
+            alt_part = '4'
+        elif part == 'five':
+            alt_part = '5'
+        elif part == 'six':
+            alt_part = '6'
+        elif part == 'seven':
+            alt_part = '7'
+        elif part == 'eight':
+            alt_part = '8'
+        elif part == 'nine':
+            alt_part = '9'
+        elif part == 'ten':
+            alt_part = '10'
 
-    if search_imdbnumber != '':
+        if part != alt_part:
+            do_or = 1
+
+        alt_title_filter = alt_title_filter + '{"field": "title", "operator": "contains", "value": "' + alt_part + '"}'
+
+    if do_or == 1:
         command = '{"jsonrpc": "2.0", ' \
             '"method": "VideoLibrary.GetMovies", ' \
             '"params": { ' \
-            '"filter": { "or" : [{"and": [%s]},%s] }, ' \
+            '"filter": { "or" : [{"and": [%s]},{"and": [%s]}] }, ' \
             '"sort": { "order": "ascending", "method": "label" }, ' \
             '"properties": ["title", "imdbnumber", "year", "file", "cast"] ' \
-            '}, "id": 1}' % (title_filter, imdb_filter)
+            '}, "id": 1}' % (title_filter, alt_title_filter)        
     else:
         command = '{"jsonrpc": "2.0", ' \
             '"method": "VideoLibrary.GetMovies", ' \
@@ -530,7 +590,7 @@ if __name__ == '__main__':
     while not monitor.abortRequested():
         if monitor.waitForAbort(0.5): break
 
-        if not xbmc.getCondVisibility('Window.IsActive(%s)' % 'MyPVRGuide.xml'):
+        if not xbmc.getCondVisibility('Window.IsActive(%s)' % 'MyPVRGuide.xml') and not xbmc.getCondVisibility('Window.IsActive(%s)' % 'MyPVRChannels.xml'):
             no_match()
             win.setProperty("Fuzzy.cache_id", "")
             xbmc.sleep(1000)
