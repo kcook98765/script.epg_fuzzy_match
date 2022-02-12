@@ -45,9 +45,11 @@ def monitorgui():
     
     imdb_id = xbmc.getInfoLabel("ListItem.IMDBNumber")
     
+    # Use SHS imdbnumber if PVR data does not have it, but check year match, as sometimes get mismatch
     if imdb_id == '':
-        imdb_id = win.getProperty('SkinHelper.ListItem.Imdbnumber')
-   
+        if win.getProperty('SkinHelper.ListItem.Year') == xbmc.getInfoLabel("ListItem.Year"):
+            imdb_id = win.getProperty('SkinHelper.ListItem.Imdbnumber')
+  
     
     d = {
         "title" : xbmc.getInfoLabel("ListItem.EpgEventTitle"),
